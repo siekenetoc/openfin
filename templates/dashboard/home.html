@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Finanzübersicht{% endblock %}
+{% block page_subtitle %}Konten, offene Posten und 30/60/90-Tage-Prognose{% endblock %}
+
+{% block content %}
+<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+  <div class="stat">
+    <div class="stat-label">Gesamtsaldo</div>
+    <div class="stat-value">{{ total_balance|floatformat:2 }} €</div>
+    <div class="mt-1 text-[11px] text-slate-500">{{ accounts|length }} aktive Konten</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Offene Forderungen</div>
+    <div class="stat-value">{{ open_expected_total|floatformat:2 }} €</div>
+    <div class="mt-1 text-[11px] text-slate-500">{{ open_expected_count }} Rechnungen aus ERPNext</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Triage</div>
+    <div class="stat-value">{{ triage_count }}</div>
+    <div class="mt-1 text-[11px] text-slate-500"><a class="text-amber-300 hover:underline" href="{% url 'dashboard:triage' %}">Klärungsfälle öffnen →</a></div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">TAN-Freigaben</div>
+    <div class="stat-value">{{ pending_tans|length }}</div>
+    <div class="mt-1 text-[11px] text-slate-500">Asynchron eingefrorene FinTS-Dialoge</div>
+  </div>
+</div>
+
+<div class="mt-6 grid gap-6 xl:grid-cols-3">
+  <div class="card xl:col-span-2">
+    <div class="card-header">
+      <div>
+        <h2 class="text-sm font-semibold text-slate-100">Letzte Bankumsätze</h2>
+        <p class="text-xs text-slate-500">Synchronisiert via FinTS, PayPal oder manueller Buchung.</p>
+      </div>
+      <a class="btn-secondary text-xs" href="{% url 'banking:transaction_list' %}">Alle Umsätze</a>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="table">
+        <thead><tr><th>Datum</th><th>Konto</th><th>Gegenpartei</th><th class="text-right">Betrag</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for tx in recent_transactions %}
+          <tr>
+            <td class="whitespace-nowrap font-mono text-xs text-slate-400">{{ tx.booking_date|date:"d.m.Y" }}</td>
+            <td class="text-xs text-slate-400">{{ tx.account.name }}</td>
+            <td>
+              <div class="font-medium text-slate-200">{{ tx.counterparty_name|default:"—" }}</div>
+              <div class="max-w-xs truncate text-[11px] text-slate-500">{{ tx.purpose }}</div>
+            </td>
+            <td class="text-right font-mono {% if tx.amount > 0 %}text-emerald-300{% else %}text-rose-300{% endif %}">{{ tx.amount|floatformat:2 }} {{ tx.currency }}</td>
+            <td>
+              {% if tx.status == 'auto_reconciled' or tx.status == 'matched' %}<span class="badge-green">{{ tx.get_status_display }}</span>
+              {% elif tx.status == 'needs_review' %}<span class="badge-yellow">{{ tx.get_status_display }}</span>
+              {% else %}<span class="badge-slate">{{ tx.get_status_display }}</span>{% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="py-8 text-center text-sm text-slate-500">Noch keine Umsätze. <a class="text-brand-300" href="{% url 'banking:account_create' %}">Konto anlegen</a> und synchronisieren.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="space-y-6">
+    <div class="card p-5">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-semibold text-slate-100">Liquiditätsprognose</h2>
+        <span class="badge-slate">30 Tage</span>
+      </div>
+      <div class="mt-4 space-y-3 text-sm">
+        <div class="flex justify-between"><span class="text-slate-400">Startsaldo</span><span class="font-mono text-slate-100">{{ forecast.opening_balance|floatformat:2 }} €</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">Erwartete Eingänge</span><span class="font-mono text-emerald-300">+{{ forecast.expected_incoming|floatformat:2 }} €</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">Erwartete Ausgänge</span><span class="font-mono text-rose-300">−{{ forecast.expected_outgoing|floatformat:2 }} €</span></div>
+        <div class="border-t border-slate-800 pt-3 flex justify-between"><span class="font-semibold text-slate-200">Prognose</span><span class="font-mono font-semibold {% if forecast.projected_balance >= 0 %}text-emerald-300{% else %}text-rose-300{% endif %}">{{ forecast.projected_balance|floatformat:2 }} €</span></div>
+      </div>
+      <div class="mt-4 grid grid-cols-2 gap-2 text-[11px]">
+        <div class="rounded-lg bg-slate-800/50 p-2"><div class="text-slate-500">60 Tage</div><div class="font-mono text-slate-200">{{ forecast_60.projected_balance|floatformat:2 }} €</div></div>
+        <div class="rounded-lg bg-slate-800/50 p-2"><div class="text-slate-500">90 Tage</div><div class="font-mono text-slate-200">{{ forecast_90.projected_balance|floatformat:2 }} €</div></div>
+      </div>
+    </div>
+
+    <div class="card p-5">
+      <h2 class="text-sm font-semibold text-slate-100">Schnellzugriff</h2>
+      <div class="mt-3 grid grid-cols-2 gap-2">
+        <a class="btn-secondary text-xs" href="{% url 'banking:account_list' %}">Konten</a>
+        <a class="btn-secondary text-xs" href="{% url 'billing:collection_dashboard' %}">Einzug</a>
+        <a class="btn-secondary text-xs" href="{% url 'erp:dashboard' %}">ERP</a>
+        <a class="btn-secondary text-xs" href="{% url 'integrations:dashboard' %}">DATEV/KI</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if pending_tans %}
+<div class="mt-6 card p-5">
+  <h2 class="text-sm font-semibold text-slate-100">Offene TAN-Freigaben</h2>
+  <div class="mt-3 space-y-2">
+    {% for challenge in pending_tans %}
+      <div class="flex items-center justify-between rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+        <div>
+          <div class="text-sm text-amber-200">{{ challenge.account.name }} · {{ challenge.get_tan_type_display }}</div>
+          <div class="text-[11px] text-amber-300/70">{{ challenge.challenge_text|truncatechars:90 }}</div>
+        </div>
+        <button class="btn-secondary text-xs" hx-get="{% url 'banking:tan_modal' challenge.pk %}" hx-target="#tan-container" hx-swap="innerHTML">TAN eingeben</button>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

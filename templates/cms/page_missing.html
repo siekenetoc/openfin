@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Seite nicht gefunden{% endblock %}
+{% block page_title %}Seite nicht gefunden{% endblock %}
+{% block page_subtitle %}Kein veröffentlichter Inhalt für „{{ slug }}“{% endblock %}
+
+{% block content %}
+<div class="card mx-auto max-w-lg p-10 text-center">
+  <div class="text-4xl text-slate-500">404</div>
+  <h2 class="mt-3 text-lg font-semibold text-slate-100">Diese Seite existiert nicht (mehr).</h2>
+  <p class="mt-1 text-sm text-slate-500">Bitte prüfen Sie die URL oder kehren Sie zur Übersicht zurück.</p>
+  <a class="btn-primary mt-5 text-xs" href="{% url 'dashboard:home' %}">Zur Übersicht</a>
+</div>
+{% endblock %}

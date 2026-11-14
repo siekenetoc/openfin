@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Triage{% endblock %}
+{% block page_title %}Triage-Dashboard{% endblock %}
+{% block page_subtitle %}Inbox Zero für Zahlungsabgleiche · Konfidenz 50–95 %{% endblock %}
+
+{% block content %}
+<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <div class="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+    <span class="kbd">J</span><span class="kbd">K</span> navigieren
+    <span class="kbd">Enter</span> zuweisen
+    <span class="kbd">Esc</span> Alternativen
+  </div>
+  <div class="flex items-center gap-2">
+    <span class="badge-yellow">{{ transactions|length }} offen</span>
+    <a class="btn-secondary text-xs" href="{% url 'erp:expected_list' %}">Offene ERP-Positionen</a>
+  </div>
+</div>
+
+<div x-data="triageBoard()" class="space-y-4">
+  {% for tx in transactions %}
+    {% include "dashboard/partials/triage_row.html" with tx=tx %}
+  {% empty %}
+    <div class="card p-10 text-center">
+      <div class="text-3xl">✓</div>
+      <h2 class="mt-3 text-lg font-semibold text-slate-100">Inbox Zero</h2>
+      <p class="mt-1 text-sm text-slate-500">Aktuell liegen keine Zahlungseingänge zur manuellen Prüfung vor.</p>
+      <a class="btn-primary mt-4 text-xs" href="{% url 'banking:transaction_list' %}">Bankumsätze ansehen</a>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

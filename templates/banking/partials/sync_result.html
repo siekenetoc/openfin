@@ -1,0 +1,10 @@
+{% if result.status == 'ok' %}
+  <span class="badge-green">Sync ok</span>
+  <span class="text-xs text-slate-400">{{ result.created }} neue Umsätze · {{ result.reconciled }} abgeglichen</span>
+{% elif result.status == 'pending_tan' %}
+  <span class="badge-yellow">TAN erforderlich</span>
+  <span class="text-xs text-amber-200">{{ result.message }}</span>
+{% else %}
+  <span class="badge-red">Fehler</span>
+  <span class="text-xs text-rose-200">{{ result.message }}</span>
+{% endif %}

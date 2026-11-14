@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ page.title }}{% endblock %}
+{% block page_title %}{{ page.title }}{% endblock %}
+{% block page_subtitle %}Zuletzt aktualisiert am {{ page.updated_at|date:"d.m.Y H:i" }}{% endblock %}
+
+{% block content %}
+<article class="mx-auto max-w-4xl">
+  {% if page.header_image %}
+    <img class="mb-6 max-h-72 w-full rounded-2xl object-cover" src="{{ page.header_image.url }}" alt="{{ page.title }}">
+  {% endif %}
+  <div class="card p-6 lg:p-10">
+    <div class="prose prose-invert max-w-none prose-headings:text-slate-100 prose-a:text-brand-300 prose-strong:text-slate-100">
+      {{ page.content_html|safe }}
+    </div>
+  </div>
+  <div class="mt-4 flex justify-between text-xs text-slate-500">
+    <a class="hover:text-brand-300" href="{% url 'dashboard:home' %}">← Zurück zur Übersicht</a>
+    {% if request.user.is_staff %}<a class="hover:text-brand-300" href="{% url 'cms:editor_edit' page.pk %}">Seite bearbeiten</a>{% endif %}
+  </div>
+</article>
+{% endblock %}

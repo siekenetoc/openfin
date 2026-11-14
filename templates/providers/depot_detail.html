@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}{{ summary.account.name }}{% endblock %}
+{% block page_title %}{{ summary.account.name }}{% endblock %}
+{% block page_subtitle %}Depotbestand &amp; Kursbewertung{% endblock %}
+
+{% block content %}
+<div class="grid gap-4 sm:grid-cols-3">
+  <div class="stat"><div class="stat-label">Depotwert</div><div class="stat-value">{{ summary.total_value|floatformat:2 }} €</div></div>
+  <div class="stat"><div class="stat-label">Positionen</div><div class="stat-value">{{ summary.position_count }}</div></div>
+  <div class="stat"><div class="stat-label">Konto</div><div class="mt-2 font-mono text-xs text-slate-300">{{ summary.account.masked_iban }}</div></div>
+</div>
+
+<div class="mt-4 flex flex-wrap gap-2">
+  <form method="post" action="{% url 'providers:depot_refresh' summary.account.pk %}">{% csrf_token %}<button class="btn-primary text-xs" type="submit">Kurse aktualisieren</button></form>
+  <a class="btn-secondary text-xs" href="{% url 'providers:position_create' summary.account.pk %}">Position anlegen</a>
+  <a class="btn-secondary text-xs" href="{% url 'dashboard:export' 'depot' %}">CSV exportieren</a>
+  <a class="btn-ghost text-xs" href="{% url 'providers:dashboard' %}">Zurück</a>
+</div>
+
+<div class="mt-6 card overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="table">
+      <thead><tr><th>Name</th><th>ISIN</th><th>Symbol</th><th class="text-right">Stück</th><th class="text-right">Kurs</th><th class="text-right">Wert</th><th>Quelle</th><th>Aktualisiert</th></tr></thead>
+      <tbody>
+      {% for position in summary.positions %}
+        <tr>
+          <td class="text-sm text-slate-200">{{ position.name }}</td>
+          <td class="font-mono text-xs text-slate-400">{{ position.isin }}</td>
+          <td class="font-mono text-[10px] text-slate-500">{{ position.yahoo_symbol|default:"—" }}</td>
+          <td class="text-right font-mono text-xs text-slate-300">{{ position.quantity }}</td>
+          <td class="text-right font-mono text-xs text-slate-300">{{ position.price|floatformat:4 }} {{ position.currency }}</td>
+          <td class="text-right font-mono text-slate-100">{{ position.market_value|floatformat:2 }} €</td>
+          <td class="text-[10px] text-slate-500">{{ position.price_source|default:"—" }}</td>
+          <td class="font-mono text-[10px] text-slate-500">{{ position.updated_at|date:"d.m.Y H:i" }}</td>
+        </tr>
+      {% empty %}<tr><td colspan="8" class="py-8 text-center text-sm text-slate-500">Keine Positionen.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

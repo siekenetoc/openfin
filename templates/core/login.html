@@ -1,0 +1,42 @@
+{% load static %}
+<!doctype html>
+<html lang="de" class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Anmelden · OpenFin</title>
+  <link rel="stylesheet" href="{% static 'dist/css/app.min.css' %}">
+</head>
+<body class="flex min-h-screen items-center justify-center bg-gray-950 px-4">
+  <div class="w-full max-w-md">
+    <div class="mb-6 text-center">
+      <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-500 font-mono text-lg font-bold text-gray-950">OF</div>
+      <h1 class="mt-4 text-2xl font-bold text-slate-50">OpenFin</h1>
+      <p class="mt-1 text-sm text-slate-400">Banking, PSP &amp; ERP-Reconciliation</p>
+    </div>
+    <div class="card p-6">
+      <h2 class="text-lg font-semibold text-slate-100">Anmelden</h2>
+      <p class="mt-1 text-xs text-slate-500">
+        {% if current_tenant %}Mandant: {{ current_tenant.name }}{% else %}Plattform-Zugang{% endif %}
+      </p>
+      <form method="post" class="mt-5 space-y-4">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+          <div class="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">{{ form.non_field_errors }}</div>
+        {% endif %}
+        <div>
+          <label class="label" for="id_username">Benutzername</label>
+          <input class="input" type="text" name="username" id="id_username" autocomplete="username" required autofocus>
+        </div>
+        <div>
+          <label class="label" for="id_password">Passwort</label>
+          <input class="input" type="password" name="password" id="id_password" autocomplete="current-password" required>
+        </div>
+        <input type="hidden" name="next" value="{{ next }}">
+        <button class="btn-primary w-full" type="submit">Anmelden</button>
+      </form>
+    </div>
+    <p class="mt-4 text-center text-[11px] text-slate-600">Lokale Instanz · Keine externen CDNs · Verschlüsselte Zugangsdaten</p>
+  </div>
+</body>
+</html>

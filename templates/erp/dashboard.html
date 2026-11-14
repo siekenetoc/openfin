@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}ERP / Abgleich{% endblock %}
+{% block page_title %}ERPNext &amp; Reconciliation{% endblock %}
+{% block page_subtitle %}Bidirektionale Synchronisation und 3-Stufen-Matching{% endblock %}
+
+{% block content %}
+<div class="grid gap-4 sm:grid-cols-3">
+  <div class="stat">
+    <div class="stat-label">ERP-Verbindung</div>
+    <div class="mt-2 text-sm {% if config and config.has_credentials %}text-emerald-300{% else %}text-amber-300{% endif %}">
+      {% if config %}{{ config.name }}{% if config.has_credentials %} · verbunden{% else %} · Demo/Mock{% endif %}{% else %}Nicht konfiguriert{% endif %}
+    </div>
+    <div class="mt-1 truncate font-mono text-[10px] text-slate-500">{{ config.erp_base_url|default:"—" }}</div>
+  </div>
+  <div class="stat"><div class="stat-label">Offene ERP-Positionen</div><div class="stat-value">{{ expected|length }}</div></div>
+  <div class="stat"><div class="stat-label">Letzte Abgleiche</div><div class="stat-value">{{ matches|length }}</div></div>
+</div>
+
+<div class="mt-4 flex flex-wrap items-center justify-between gap-2">
+  <div class="flex gap-2">
+    <a class="btn-secondary text-xs" href="{% url 'dashboard:export' 'expected' %}">Offene Posten CSV</a>
+    <a class="btn-secondary text-xs" href="{% url 'erp:expected_list' %}">Alle Positionen</a>
+    <a class="btn-secondary text-xs" href="{% url 'erp:config_edit' %}">Konfiguration</a>
+  </div>
+  <form method="post" action="{% url 'erp:sync_purchases' %}">{% csrf_token %}<button class="btn-primary text-xs" type="submit">Purchase Invoices synchronisieren</button></form>
+</div>
+
+<div class="mt-6 grid gap-6 xl:grid-cols-2">
+  <div class="card overflow-hidden">
+    <div class="card-header"><h2 class="text-sm font-semibold text-slate-100">Offene Expected Payments</h2></div>
+    <div class="overflow-x-auto">
+      <table class="table">
+        <thead><tr><th>Rechnung</th><th>Kunde</th><th class="text-right">Betrag</th><th>Fällig</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for payment in expected %}
+          <tr>
+            <td class="font-mono text-xs text-brand-300">{{ payment.invoice_id }}</td>
+            <td class="text-sm text-slate-200">{{ payment.customer_name }}</td>
+            <td class="text-right font-mono text-slate-100">{{ payment.amount|floatformat:2 }} {{ payment.currency }}</td>
+            <td class="font-mono text-xs text-slate-400">{{ payment.due_date|date:"d.m.Y" }}</td>
+            <td><span class="badge-slate">{{ payment.get_status_display }}</span></td>
+          </tr>
+        {% empty %}<tr><td colspan="5" class="py-8 text-center text-sm text-slate-500">Keine offenen Positionen.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card overflow-hidden">
+    <div class="card-header"><h2 class="text-sm font-semibold text-slate-100">Letzte Abgleiche</h2></div>
+    <div class="overflow-x-auto">
+      <table class="table">
+        <thead><tr><th>Transaktion</th><th>Rechnung</th><th>Score</th><th>Stufe</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for match in matches %}
+          <tr>
+            <td class="font-mono text-xs text-slate-400">#{{ match.transaction_id }}</td>
+            <td class="font-mono text-xs text-brand-300">{{ match.expected_payment.invoice_id }}</td>
+            <td><span class="badge-yellow">{{ match.score }} %</span></td>
+            <td class="text-[10px] text-slate-500">{{ match.get_stage_display }}</td>
+            <td><span class="badge-slate">{{ match.get_status_display }}</span></td>
+          </tr>
+        {% empty %}<tr><td colspan="5" class="py-8 text-center text-sm text-slate-500">Noch keine Abgleiche.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="mt-6 card overflow-hidden">
+  <div class="card-header"><h2 class="text-sm font-semibold text-slate-100">Eingangsrechnungen</h2></div>
+  <div class="overflow-x-auto">
+    <table class="table">
+      <thead><tr><th>Rechnung</th><th>Lieferant</th><th class="text-right">Betrag</th><th>Fällig</th><th>Status</th><th>Ausgangskorb</th></tr></thead>
+      <tbody>
+      {% for purchase in purchases %}
+        <tr>
+          <td class="font-mono text-xs text-slate-300">{{ purchase.invoice_id }}</td>
+          <td class="text-sm text-slate-200">{{ purchase.supplier }}</td>
+          <td class="text-right font-mono text-slate-100">{{ purchase.amount|floatformat:2 }} {{ purchase.currency }}</td>
+          <td class="font-mono text-xs text-slate-400">{{ purchase.due_date|date:"d.m.Y"|default:"—" }}</td>
+          <td><span class="badge-slate">{{ purchase.get_status_display }}</span></td>
+          <td>{% if purchase.outgoing_payment %}<a class="text-xs text-brand-300" href="{% url 'banking:payment_detail' purchase.outgoing_payment.pk %}">Zahlung #{{ purchase.outgoing_payment_id }}</a>{% else %}—{% endif %}</td>
+        </tr>
+      {% empty %}<tr><td colspan="6" class="py-8 text-center text-sm text-slate-500">Keine Eingangsrechnungen synchronisiert.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

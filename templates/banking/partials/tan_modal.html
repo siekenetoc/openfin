@@ -1,0 +1,41 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" x-data="{ show: true }" x-show="show" x-cloak>
+  <div class="card w-full max-w-lg border-amber-500/30 p-6">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-amber-300">PSD2 / SCA</div>
+        <h2 class="mt-1 text-lg font-semibold text-slate-50">TAN-Freigabe erforderlich</h2>
+        <p class="mt-1 text-xs text-slate-400">{{ challenge.account.name }} · {{ challenge.get_tan_type_display }}</p>
+      </div>
+      <button class="btn-ghost px-2 py-1" type="button"
+              hx-post="{% url 'banking:tan_cancel' challenge.pk %}"
+              hx-target="#tan-container" hx-swap="innerHTML">✕</button>
+    </div>
+
+    <div class="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+      <div class="text-sm text-amber-100">{{ challenge.challenge_text|default:"Bitte bestätigen Sie die Transaktion in Ihrer Banking-App." }}</div>
+      {% if challenge.challenge_image %}
+        <img class="mt-3 mx-auto max-h-48 rounded-lg bg-white p-2" src="{{ challenge.challenge_image }}" alt="TAN-Challenge">
+      {% endif %}
+      <div class="mt-2 font-mono text-[10px] text-amber-300/70">Gültig bis {{ challenge.expires_at|date:"H:i:s" }}</div>
+    </div>
+
+    {% if error %}<div class="mt-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200">{{ error }}</div>{% endif %}
+
+    <form class="mt-4 space-y-3"
+          hx-post="{% url 'banking:tan_confirm' challenge.pk %}"
+          hx-target="#tan-container"
+          hx-swap="innerHTML"
+          hx-indicator="#tan-spinner">
+      {% csrf_token %}
+      <div>
+        <label class="label" for="tan-input">TAN</label>
+        <input id="tan-input" name="tan" type="text" inputmode="numeric" autocomplete="one-time-code" class="input font-mono text-lg tracking-[0.3em]" placeholder="••••••" autofocus required>
+      </div>
+      <div class="flex items-center gap-2">
+        <button class="btn-primary flex-1" type="submit">Freigeben</button>
+        <span id="tan-spinner" class="htmx-indicator text-xs text-brand-300">Prüfe…</span>
+      </div>
+    </form>
+    <p class="mt-3 text-[10px] text-slate-500">Der FinTS-Dialog-State ist verschlüsselt in PostgreSQL und mit TTL in Redis eingefroren. Die TAN wird nur zur Laufzeit verarbeitet.</p>
+  </div>
+</div>

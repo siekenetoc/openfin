@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Integrationen{% endblock %}
+{% block page_title %}DATEV · Paperless · Local AI{% endblock %}
+{% block page_subtitle %}Buchungsstapel, Beleg-Abgleich und semantische Finanzabfragen{% endblock %}
+
+{% block content %}
+<div class="grid gap-4 sm:grid-cols-3">
+  <div class="stat">
+    <div class="stat-label">Paperless-ngx</div>
+    <div class="mt-2 text-sm {% if paperless_configured %}text-emerald-300{% else %}text-amber-300{% endif %}">{% if paperless_configured %}konfiguriert{% else %}nicht konfiguriert{% endif %}</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Local AI</div>
+    <div class="mt-2 text-sm {% if ai_configured %}text-emerald-300{% else %}text-amber-300{% endif %}">{% if ai_configured %}{{ ai_model }}{% else %}Heuristik-Fallback{% endif %}</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">DATEV</div>
+    <div class="mt-2 text-sm text-slate-200">{{ datev_configs|length }} Konfiguration(en)</div>
+  </div>
+</div>
+
+<div class="mt-6 grid gap-6 xl:grid-cols-2">
+  <div class="card p-5">
+    <div class="flex items-center justify-between">
+      <h2 class="text-sm font-semibold text-slate-100">DATEV-EXTF-Export</h2>
+      <a class="btn-secondary text-xs" href="{% url 'integrations:datev_config' %}">Konfiguration</a>
+    </div>
+    <p class="mt-1 text-xs text-slate-500">Vorkontierte Buchungssätze als DATEV-CSV (EXTF v700, UTF-8 BOM, Semikolon).</p>
+    <form method="get" action="{% url 'integrations:datev_export' %}" class="mt-4 grid gap-3 sm:grid-cols-3">
+      <div><label class="label">Von</label><input type="date" name="date_from" class="input" value="{{ request.GET.date_from }}"></div>
+      <div><label class="label">Bis</label><input type="date" name="date_to" class="input" value="{{ request.GET.date_to }}"></div>
+      <div class="flex items-end"><button class="btn-primary w-full text-xs" type="submit">Export</button></div>
+    </form>
+    <div class="mt-4 space-y-2">
+      {% for config in datev_configs %}
+        <div class="rounded-xl border border-slate-800 px-3 py-2 text-xs">
+          <span class="text-slate-200">Berater {{ config.advisor_number }} / Mandant {{ config.client_number }}</span>
+          <span class="text-slate-500">· SKR {{ config.skr }} · {{ config.fiscal_year }}</span>
+        </div>
+      {% empty %}<div class="text-xs text-slate-500">Noch keine DATEV-Konfiguration.</div>{% endfor %}
+    </div>
+    <p class="mt-3 text-[10px] text-slate-500">Die OAuth2-Schnittstelle zum DATEV Buchungsdatenservice 1.0 ist im Client vorbereitet; der Upload erfordert eine freigeschaltete DATEV-App.</p>
+  </div>
+
+  <div class="card p-5">
+    <div class="flex items-center justify-between">
+      <h2 class="text-sm font-semibold text-slate-100">Paperless-ngx</h2>
+      <form method="post" action="{% url 'integrations:paperless_autolink' %}">{% csrf_token %}<button class="btn-secondary text-xs" type="submit">Auto-Link starten</button></form>
+    </div>
+    <p class="mt-1 text-xs text-slate-500">Belege werden anhand Betrag, Datum und OCR-Text automatisch mit Transaktionen verknüpft.</p>
+    <div class="mt-3 space-y-2">
+      {% for link in paperless_links %}
+        <div class="rounded-xl border border-slate-800 px-3 py-2 text-xs">
+          <div class="text-slate-200">{{ link.title|default:link.document_id }}</div>
+          <div class="text-[10px] text-slate-500">Tx #{{ link.transaction_id }} · Score {{ link.match_score }} % · <a class="text-brand-300" href="{{ link.url }}" target="_blank" rel="noopener">Öffnen</a></div>
+        </div>
+      {% empty %}<div class="text-xs text-slate-500">Noch keine Beleglinks.</div>{% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="mt-6 grid gap-6 xl:grid-cols-2">
+  <div class="card p-5">
+    <div class="flex items-center justify-between">
+      <h2 class="text-sm font-semibold text-slate-100">Local AI</h2>
+      <div class="flex gap-2">
+        <form method="post" action="{% url 'integrations:ai_categorize_batch' %}">{% csrf_token %}<button class="btn-secondary text-xs" type="submit">Unkategorisierte Umsätze</button></form>
+        <a class="btn-primary text-xs" href="{% url 'integrations:ai_query' %}">Text-to-SQL</a>
+      </div>
+    </div>
+    <p class="mt-1 text-xs text-slate-500">Semantische Kategorisierung und Natural-Language-Abfragen gegen das eigene Finanzarchiv.</p>
+    <div class="mt-3 space-y-2">
+      {% for result in ai_results %}
+        <div class="rounded-xl border border-slate-800 px-3 py-2 text-xs">
+          <div class="text-slate-200">{{ result.transaction.counterparty_name|default:result.transaction.purpose|truncatechars:50 }}</div>
+          <div class="text-[10px] text-slate-500">{{ result.category }} · {{ result.confidence }} % · {{ result.model }}</div>
+        </div>
+      {% empty %}<div class="text-xs text-slate-500">Noch keine KI-Ergebnisse.</div>{% endfor %}
+    </div>
+  </div>
+
+  <div class="card p-5">
+    <h2 class="text-sm font-semibold text-slate-100">Letzte KI-Abfragen</h2>
+    <div class="mt-3 space-y-2">
+      {% for query in queries %}
+        <div class="rounded-xl border border-slate-800 px-3 py-2 text-xs">
+          <div class="text-slate-200">{{ query.question|truncatechars:80 }}</div>
+          <div class="text-[10px] text-slate-500">{{ query.row_count }} Zeilen · {% if query.error %}<span class="text-rose-300">{{ query.error|truncatechars:60 }}</span>{% else %}ok{% endif %}</div>
+        </div>
+      {% empty %}<div class="text-xs text-slate-500">Noch keine Abfragen.</div>{% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

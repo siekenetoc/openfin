@@ -1,0 +1,27 @@
+# Persistente Docker Bind-Mounts (niemals ins Repo pushen!)
+/docker-data/
+
+# Lokale Umgebungsvariablen & Secrets
+.env
+.env.*
+!.env.example
+
+# Python / Django
+__pycache__/
+*.py[cod]
+*.sqlite3
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Node.js (Assets werden lokal nach /static/dist/ kompiliert)
+node_modules/
+npm-debug.log*
+
+# Build-Artefakte
+static/dist/
+staticfiles/
+*.log
+.DS_Store

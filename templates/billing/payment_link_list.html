@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Payment-Links{% endblock %}
+{% block page_title %}Payment-Links{% endblock %}
+{% block page_subtitle %}Stripe, PayPal und Wero (A2A){% endblock %}
+
+{% block content %}
+<div class="flex justify-end"><a class="btn-secondary text-xs" href="{% url 'billing:collection_dashboard' %}">Forderungseinzug</a></div>
+<div class="mt-4 card overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="table">
+      <thead><tr><th>Provider</th><th>Rechnung</th><th class="text-right">Betrag</th><th>Status</th><th>Link / QR</th><th>Erstellt</th></tr></thead>
+      <tbody>
+      {% for link in links %}
+        <tr>
+          <td><span class="badge-slate">{{ link.get_provider_display }}</span></td>
+          <td class="font-mono text-xs text-brand-300">{{ link.expected_payment.invoice_id }}</td>
+          <td class="text-right font-mono text-slate-100">{{ link.amount|floatformat:2 }} {{ link.currency }}</td>
+          <td>{% if link.status == 'paid' %}<span class="badge-green">{{ link.get_status_display }}</span>{% else %}<span class="badge-yellow">{{ link.get_status_display }}</span>{% endif %}</td>
+          <td>
+            <a class="text-xs text-brand-300 hover:underline" href="{{ link.url }}" target="_blank" rel="noopener">Öffnen</a>
+            {% if link.qr_code %}<img class="mt-2 h-24 w-24 rounded bg-white p-1" src="{{ link.qr_code }}" alt="Wero QR-Code">{% endif %}
+          </td>
+          <td class="font-mono text-xs text-slate-400">{{ link.created_at|date:"d.m.Y H:i" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="py-10 text-center text-sm text-slate-500">Noch keine Payment-Links.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Banking{% endblock %}
+{% block page_title %}Bankkonten{% endblock %}
+{% block page_subtitle %}FinTS, PayPal, Depots und Offline-Konten{% endblock %}
+
+{% block content %}
+<div class="grid gap-4 sm:grid-cols-3">
+  <div class="stat">
+    <div class="stat-label">Gesamtsaldo</div>
+    <div class="stat-value">{{ total_balance|floatformat:2 }} €</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">30-Tage-Prognose</div>
+    <div class="stat-value">{{ forecast_30.projected_balance|floatformat:2 }} €</div>
+    <div class="mt-1 text-[11px] text-slate-500">60 T: {{ forecast_60.projected_balance|floatformat:2 }} € · 90 T: {{ forecast_90.projected_balance|floatformat:2 }} €</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Offene TANs</div>
+    <div class="stat-value">{{ pending_tans|length }}</div>
+  </div>
+</div>
+
+<div class="mt-6 flex flex-wrap items-center justify-between gap-3">
+  <h2 class="text-sm font-semibold text-slate-100">Konten</h2>
+  <div class="flex flex-wrap gap-2">
+    <a class="btn-secondary text-xs" href="{% url 'dashboard:export' 'accounts' %}">CSV exportieren</a>
+    <a class="btn-primary text-xs" href="{% url 'banking:account_create' %}">Konto anlegen</a>
+  </div>
+</div>
+
+<div class="mt-3 card overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="table">
+      <thead>
+        <tr><th>Konto</th><th>Typ / Provider</th><th>IBAN</th><th class="text-right">Saldo</th><th>Status</th><th class="text-right">Aktion</th></tr>
+      </thead>
+      <tbody>
+      {% for account in accounts %}
+        <tr>
+          <td>
+            <a class="font-semibold text-slate-100 hover:text-brand-300" href="{% url 'banking:account_detail' account.pk %}">{{ account.name }}</a>
+            <div class="text-[11px] text-slate-500">{{ account.holder|default:account.bank_name }}</div>
+          </td>
+          <td>
+            <div class="text-xs text-slate-300">{{ account.get_account_type_display }}</div>
+            <div class="text-[10px] uppercase tracking-wide text-slate-500">{{ account.get_provider_display }}</div>
+          </td>
+          <td class="font-mono text-xs text-slate-400">{{ account.masked_iban }}</td>
+          <td class="text-right font-mono {% if account.balance >= 0 %}text-slate-100{% else %}text-rose-300{% endif %}">{{ account.balance|floatformat:2 }} {{ account.currency }}</td>
+          <td>
+            {% if account.needs_tan %}<span class="badge-yellow">TAN offen</span>
+            {% elif account.sync_error %}<span class="badge-red">Sync-Fehler</span>
+            {% else %}<span class="badge-green">bereit</span>{% endif %}
+            <div class="mt-1 text-[10px] text-slate-500">{% if account.last_sync_at %}{{ account.last_sync_at|date:"d.m.Y H:i" }}{% else %}nie{% endif %}</div>
+          </td>
+          <td class="text-right">
+            <button class="btn-secondary text-xs"
+                    hx-post="{% url 'banking:account_sync' account.pk %}"
+                    hx-target="#sync-result-{{ account.pk }}"
+                    hx-swap="innerHTML"
+                    hx-indicator="#sync-spinner-{{ account.pk }}">Sync</button>
+            <span id="sync-spinner-{{ account.pk }}" class="htmx-indicator text-xs text-brand-300">…</span>
+            <div id="sync-result-{{ account.pk }}" class="mt-1"></div>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="py-10 text-center text-sm text-slate-500">Noch keine Konten. <a class="text-brand-300" href="{% url 'banking:account_create' %}">Erstes Konto anlegen</a>.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if pending_tans %}
+<div class="mt-6 card p-5">
+  <h2 class="text-sm font-semibold text-slate-100">Offene TAN-Freigaben</h2>
+  <div class="mt-3 space-y-2">
+    {% for challenge in pending_tans %}
+      <div class="flex items-center justify-between rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+        <div>
+          <div class="text-sm text-amber-200">{{ challenge.account.name }} · {{ challenge.get_tan_type_display }}</div>
+          <div class="text-[11px] text-amber-300/70">{{ challenge.challenge_text|truncatechars:100 }}</div>
+        </div>
+        <button class="btn-secondary text-xs" hx-get="{% url 'banking:tan_modal' challenge.pk %}" hx-target="#tan-container" hx-swap="innerHTML">TAN eingeben</button>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

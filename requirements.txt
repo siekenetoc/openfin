@@ -1,0 +1,59 @@
+# --- Core & Multi-Tenancy ---
+Django>=5.2,<6.0
+django-tenants>=3.14,<4
+djangorestframework>=3.15.2
+drf-spectacular>=0.27.2
+django-environ>=0.11.2
+django-cors-headers>=4.4.0
+django-filter>=24.3
+gunicorn>=23.0.0
+whitenoise>=6.7.0
+
+# --- Database & Redis ---
+psycopg[binary]>=3.2.1
+redis>=5.0.8
+hiredis>=3.0.0
+
+# --- Async Workers (Celery) ---
+celery>=5.4.0
+django-celery-beat>=2.7.0
+django-celery-results>=2.5.1
+
+# --- Security & Encryption at Rest ---
+cryptography>=43.0.1
+django-cryptography-django5>=2.1
+
+# --- Banking (FinTS / HBCI, SEPA PAIN.001 & PAIN.008, MT940) ---
+fints>=4.2,<6
+sepaxml>=2.6.0
+mt-940>=4.30.0
+Schwifty>=2024.8.0
+lxml>=5.3.0
+defusedxml>=0.7.1
+
+# --- Payment Gateways & External Providers ---
+stripe>=10.10.0
+paypalrestsdk>=1.13.3
+requests>=2.32.3
+httpx>=0.27.2
+yfinance>=0.2.43
+
+# --- Headless Scraping (Amazon & Non-FinTS Kreditkarten) ---
+playwright>=1.47.0
+beautifulsoup4>=4.12.3
+
+# --- Local AI / LLM Client & Document Handling ---
+openai>=1.45.0
+Pillow>=10.4.0
+pypdf>=4.3.1
+qrcode[pil]>=7.4.2
+
+# --- Fuzzy Matching & Utilities ---
+rapidfuzz>=3.9.0
+python-dateutil>=2.9.0
+
+# --- Testing & Quality ---
+pytest>=8.3.3
+pytest-django>=4.9.0
+pytest-cov>=5.0.0
+factory-boy>=3.3.1

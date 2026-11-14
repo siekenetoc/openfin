@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}SEPA-Mandate{% endblock %}
+{% block page_title %}SEPA-Mandate{% endblock %}
+{% block page_subtitle %}CORE &amp; B2B · Mandatsreferenzen und Sequenztypen{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between">
+  <a class="btn-secondary text-xs" href="{% url 'billing:collection_dashboard' %}">Forderungseinzug</a>
+  <a class="btn-primary text-xs" href="{% url 'billing:mandate_create' %}">Mandat anlegen</a>
+</div>
+<div class="mt-4 card overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="table">
+      <thead><tr><th>Debitor</th><th>Mandat</th><th>IBAN</th><th>Typ</th><th>Sequenz</th><th>Signatur</th><th>Status</th><th class="text-right">Aktion</th></tr></thead>
+      <tbody>
+      {% for mandate in mandates %}
+        <tr>
+          <td class="text-sm text-slate-200">{{ mandate.debtor_name }}<div class="text-[10px] text-slate-500">{{ mandate.debtor_email }}</div></td>
+          <td class="font-mono text-xs text-slate-300">{{ mandate.mandate_reference }}</td>
+          <td class="font-mono text-xs text-slate-400">{{ mandate.debtor_iban }}</td>
+          <td><span class="badge-slate">{{ mandate.mandate_type }}</span></td>
+          <td class="text-xs text-slate-400">{{ mandate.sequence_type }}</td>
+          <td class="font-mono text-xs text-slate-400">{{ mandate.signature_date|date:"d.m.Y" }}</td>
+          <td>{% if mandate.is_active %}<span class="badge-green">aktiv</span>{% else %}<span class="badge-red">inaktiv</span>{% endif %}</td>
+          <td class="text-right"><a class="btn-secondary text-xs" href="{% url 'billing:mandate_edit' mandate.pk %}">Bearbeiten</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="8" class="py-10 text-center text-sm text-slate-500">Noch keine Mandate.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

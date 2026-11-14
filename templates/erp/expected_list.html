@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Offene Posten{% endblock %}
+{% block page_title %}Expected Payments{% endblock %}
+{% block page_subtitle %}Aus ERPNext synchronisierte Ausgangsrechnungen{% endblock %}
+
+{% block content %}
+<form method="get" class="card p-4" x-data="csvTable()">
+  <div class="flex flex-wrap items-end gap-3">
+    <div>
+      <label class="label">Status</label>
+      <select name="status" class="input" x-model="statusFilter">
+        <option value="">Alle</option>
+        <option value="open" {% if status == 'open' %}selected{% endif %}>Offen</option>
+        <option value="paid" {% if status == 'paid' %}selected{% endif %}>Bezahlt</option>
+        <option value="partial" {% if status == 'partial' %}selected{% endif %}>Teilzahlung</option>
+        <option value="cancelled" {% if status == 'cancelled' %}selected{% endif %}>Storniert</option>
+      </select>
+    </div>
+    <div>
+      <label class="label">Von (Fälligkeit)</label>
+      <input type="date" name="date_from" class="input" x-model="dateFrom" value="{{ request.GET.date_from }}">
+    </div>
+    <div>
+      <label class="label">Bis (Fälligkeit)</label>
+      <input type="date" name="date_to" class="input" x-model="dateTo" value="{{ request.GET.date_to }}">
+    </div>
+    <div class="flex-1">
+      <label class="label">Suche</label>
+      <input type="text" name="q" class="input" value="{{ request.GET.q }}" placeholder="Rechnung oder Kunde">
+    </div>
+    <button class="btn-secondary text-xs" type="submit">Filtern</button>
+    <button class="btn-primary text-xs" type="button" @click="exportCsv('{% url 'dashboard:export' 'expected' %}')">CSV Export</button>
+  </div>
+
+  <div class="mt-4 overflow-x-auto">
+    <table class="table">
+      <thead><tr><th class="w-8"><input type="checkbox" @change="toggleAll()" class="rounded border-slate-600 bg-gray-950"></th><th>Rechnung</th><th>Kunde</th><th class="text-right">Betrag</th><th>Rechnungsdatum</th><th>Fällig</th><th>Skonto</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for payment in payments %}
+        <tr>
+          <td><input type="checkbox" data-row-select value="{{ payment.pk }}" @change="syncSelected()" class="rounded border-slate-600 bg-gray-950"></td>
+          <td class="font-mono text-xs text-brand-300">{{ payment.invoice_id }}</td>
+          <td class="text-sm text-slate-200">{{ payment.customer_name }}<div class="font-mono text-[10px] text-slate-500">{{ payment.customer_iban }}</div></td>
+          <td class="text-right font-mono text-slate-100">{{ payment.amount|floatformat:2 }} {{ payment.currency }}</td>
+          <td class="font-mono text-xs text-slate-400">{{ payment.issue_date|date:"d.m.Y" }}</td>
+          <td class="font-mono text-xs {% if payment.status == 'open' %}text-amber-300{% else %}text-slate-400{% endif %}">{{ payment.due_date|date:"d.m.Y" }}</td>
+          <td class="text-xs text-slate-400">{{ payment.discount_rate }} % / {{ payment.discount_days }} T</td>
+          <td><span class="badge-slate">{{ payment.get_status_display }}</span></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="8" class="py-10 text-center text-sm text-slate-500">Keine Positionen für diesen Filter.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,14 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+  <div class="card w-full max-w-md p-6 text-center">
+    {% if challenge.status == 'confirmed' %}
+      <div class="text-3xl text-emerald-300">✓</div>
+      <h2 class="mt-2 text-lg font-semibold text-slate-50">TAN bestätigt</h2>
+      <p class="mt-1 text-sm text-slate-400">Die Transaktion wurde freigegeben und wird verarbeitet.</p>
+    {% else %}
+      <div class="text-3xl text-slate-400">■</div>
+      <h2 class="mt-2 text-lg font-semibold text-slate-50">TAN-Freigabe beendet</h2>
+      <p class="mt-1 text-sm text-slate-400">Status: {{ challenge.get_status_display }}</p>
+    {% endif %}
+    <button class="btn-secondary mt-4 text-xs" type="button" onclick="document.getElementById('tan-container').innerHTML=''">Schließen</button>
+  </div>
+</div>

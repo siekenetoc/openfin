@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Bankumsätze{% endblock %}
+{% block page_title %}Bankumsätze{% endblock %}
+{% block page_subtitle %}Filter, Triage und universeller CSV-Export{% endblock %}
+
+{% block content %}
+<form method="get" class="card p-4" x-data="csvTable()">
+  <div class="grid gap-3 md:grid-cols-5">
+    <div>
+      <label class="label">Konto</label>
+      <select name="account" class="input">
+        <option value="">Alle Konten</option>
+        {% for account in form.fields.account.queryset %}
+          <option value="{{ account.pk }}" {% if request.GET.account == account.pk|stringformat:'s' %}selected{% endif %}>{{ account.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="label">Status</label>
+      <select name="status" class="input" x-model="statusFilter">
+        <option value="">Alle Status</option>
+        <option value="unmatched" {% if request.GET.status == 'unmatched' %}selected{% endif %}>Unzugeordnet</option>
+        <option value="needs_review" {% if request.GET.status == 'needs_review' %}selected{% endif %}>Prüfung nötig</option>
+        <option value="auto_reconciled" {% if request.GET.status == 'auto_reconciled' %}selected{% endif %}>Automatisch verbucht</option>
+        <option value="matched" {% if request.GET.status == 'matched' %}selected{% endif %}>Manuell verbucht</option>
+        <option value="ignored" {% if request.GET.status == 'ignored' %}selected{% endif %}>Ignoriert</option>
+      </select>
+    </div>
+    <div>
+      <label class="label">Von</label>
+      <input type="date" name="date_from" value="{{ request.GET.date_from }}" class="input" x-model="dateFrom">
+    </div>
+    <div>
+      <label class="label">Bis</label>
+      <input type="date" name="date_to" value="{{ request.GET.date_to }}" class="input" x-model="dateTo">
+    </div>
+    <div>
+      <label class="label">Suche</label>
+      <input type="text" name="search" value="{{ request.GET.search }}" class="input" placeholder="Zweck, Name, IBAN">
+    </div>
+  </div>
+  <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
+    <div class="text-xs text-slate-500">{{ page_obj.paginator.count }} Umsätze</div>
+    <div class="flex gap-2">
+      <button class="btn-secondary text-xs" type="submit">Filtern</button>
+      <button class="btn-primary text-xs" type="button" @click="exportCsv('{% url 'dashboard:export' 'transactions' %}')">CSV Export (<span x-text="selectedIds.length"></span>)</button>
+    </div>
+  </div>
+
+  <div class="mt-4 overflow-x-auto">
+    <table class="table">
+      <thead>
+        <tr>
+          <th class="w-8"><input type="checkbox" @change="toggleAll()" :checked="selectAll" class="rounded border-slate-600 bg-gray-950"></th>
+          <th>Datum</th><th>Konto</th><th>Gegenpartei / Zweck</th><th class="text-right">Betrag</th><th>Status</th><th class="text-right">Aktionen</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for tx in page_obj %}
+        <tr>
+          <td><input type="checkbox" data-row-select value="{{ tx.pk }}" @change="syncSelected()" class="rounded border-slate-600 bg-gray-950"></td>
+          <td class="whitespace-nowrap font-mono text-xs text-slate-400">{{ tx.booking_date|date:"d.m.Y" }}</td>
+          <td class="text-xs text-slate-400">{{ tx.account.name }}</td>
+          <td>
+            <div class="text-sm text-slate-200">{{ tx.counterparty_name|default:"—" }}</div>
+            <div class="max-w-lg truncate text-[11px] text-slate-500">{{ tx.purpose }}</div>
+            {% if tx.linked_document_url %}<a class="text-[10px] text-brand-300" href="{{ tx.linked_document_url }}" target="_blank" rel="noopener">Paperless-Beleg</a>{% endif %}
+          </td>
+          <td class="text-right font-mono {% if tx.amount > 0 %}text-emerald-300{% else %}text-rose-300{% endif %}">{{ tx.amount|floatformat:2 }} {{ tx.currency }}</td>
+          <td>
+            {% if tx.status == 'auto_reconciled' or tx.status == 'matched' %}<span class="badge-green">{{ tx.get_status_display }}</span>
+            {% elif tx.status == 'needs_review' %}<span class="badge-yellow">{{ tx.get_status_display }}</span>
+            {% else %}<span class="badge-slate">{{ tx.get_status_display }}</span>{% endif %}
+            {% if tx.confidence_score %}<div class="mt-1 text-[10px] text-slate-500">{{ tx.confidence_score }} %</div>{% endif %}
+          </td>
+          <td class="text-right">
+            <div class="flex justify-end gap-1">
+              <form method="post" action="{% url 'integrations:paperless_link' tx.pk %}">{% csrf_token %}<button class="btn-ghost px-2 py-1 text-[10px]" type="submit">Beleg</button></form>
+              <form method="post" action="{% url 'integrations:ai_categorize' tx.pk %}">{% csrf_token %}<button class="btn-ghost px-2 py-1 text-[10px]" type="submit">KI</button></form>
+            </div>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="py-10 text-center text-sm text-slate-500">Keine Umsätze für diesen Filter.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</form>
+
+{% if page_obj.has_other_pages %}
+<div class="mt-4 flex items-center justify-between text-xs text-slate-400">
+  <div>Seite {{ page_obj.number }} von {{ page_obj.paginator.num_pages }}</div>
+  <div class="flex gap-2">
+    {% if page_obj.has_previous %}<a class="btn-secondary text-xs" href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}">Zurück</a>{% endif %}
+    {% if page_obj.has_next %}<a class="btn-secondary text-xs" href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}">Weiter</a>{% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

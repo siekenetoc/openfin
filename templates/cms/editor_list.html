@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}CMS{% endblock %}
+{% block page_title %}CMS-Seiten{% endblock %}
+{% block page_subtitle %}AGB, Impressum, Datenschutz, Partner und Hinweise{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between">
+  <div class="text-xs text-slate-500">{{ pages|length }} Seiten im aktuellen Scope</div>
+  <a class="btn-primary text-xs" href="{% url 'cms:editor_new' %}">Neue Seite</a>
+</div>
+<div class="mt-4 card overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="table">
+      <thead><tr><th>Titel</th><th>Slug</th><th>Scope</th><th>Footer</th><th>Status</th><th>Aktualisiert</th><th class="text-right">Aktion</th></tr></thead>
+      <tbody>
+      {% for page in pages %}
+        <tr>
+          <td class="text-sm font-semibold text-slate-200">{{ page.title }}</td>
+          <td class="font-mono text-xs text-brand-300">{{ page.slug }}</td>
+          <td class="text-xs text-slate-400">{% if page.tenant %}{{ page.tenant.name }}{% else %}global{% endif %}</td>
+          <td>{% if page.show_in_footer %}<span class="badge-green">ja</span>{% else %}<span class="badge-slate">nein</span>{% endif %}</td>
+          <td>{% if page.is_published %}<span class="badge-green">veröffentlicht</span>{% else %}<span class="badge-yellow">Entwurf</span>{% endif %}</td>
+          <td class="font-mono text-[10px] text-slate-500">{{ page.updated_at|date:"d.m.Y H:i" }}</td>
+          <td class="text-right">
+            <a class="btn-secondary text-xs" href="{% url 'cms:editor_edit' page.pk %}">Bearbeiten</a>
+            {% if page.is_published %}<a class="btn-ghost text-xs" href="{% url 'cms:page_detail' page.slug %}">Ansehen</a>{% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="py-10 text-center text-sm text-slate-500">Noch keine Seiten.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

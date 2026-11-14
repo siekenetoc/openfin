@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Daueraufträge{% endblock %}
+{% block page_title %}Daueraufträge{% endblock %}
+{% block page_subtitle %}Anlage, Änderung und Löschung über FinTS{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between">
+  <a class="btn-secondary text-xs" href="{% url 'banking:payment_list' %}">Ausgangskorb</a>
+  <a class="btn-primary text-xs" href="{% url 'banking:standing_order_create' %}">Dauerauftrag anlegen</a>
+</div>
+<div class="mt-4 card overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="table">
+      <thead><tr><th>Empfänger</th><th>Konto</th><th>Intervall</th><th>Start</th><th class="text-right">Betrag</th><th>Status</th><th class="text-right">Aktion</th></tr></thead>
+      <tbody>
+      {% for order in orders %}
+        <tr>
+          <td class="text-sm text-slate-200">{{ order.recipient_name }}<div class="font-mono text-[10px] text-slate-500">{{ order.recipient_iban }}</div></td>
+          <td class="text-xs text-slate-400">{{ order.account.name }}</td>
+          <td class="text-xs text-slate-300">{{ order.get_interval_display }}</td>
+          <td class="font-mono text-xs text-slate-400">{{ order.start_date|date:"d.m.Y" }}</td>
+          <td class="text-right font-mono text-slate-100">{{ order.amount|floatformat:2 }} €</td>
+          <td>{% if order.is_active %}<span class="badge-green">aktiv</span>{% else %}<span class="badge-slate">inaktiv</span>{% endif %}</td>
+          <td class="text-right">
+            {% if order.is_active %}
+            <form method="post" action="{% url 'banking:standing_order_delete' order.pk %}">{% csrf_token %}<button class="btn-ghost text-xs" type="submit">Löschen</button></form>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="py-10 text-center text-sm text-slate-500">Keine Daueraufträge.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

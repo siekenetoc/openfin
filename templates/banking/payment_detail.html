@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Zahlung {{ payment.pk }}{% endblock %}
+{% block page_title %}Zahlung an {{ payment.recipient_name }}{% endblock %}
+{% block page_subtitle %}{{ payment.get_payment_type_display }} · {{ payment.get_status_display }}{% endblock %}
+
+{% block content %}
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="card p-6 lg:col-span-2">
+    <div class="flex items-baseline justify-between">
+      <div class="font-mono text-3xl font-semibold text-slate-100">{{ payment.amount|floatformat:2 }} {{ payment.currency }}</div>
+      <span class="badge-slate">{{ payment.get_status_display }}</span>
+    </div>
+    <dl class="mt-5 grid gap-3 text-sm sm:grid-cols-2">
+      <div><dt class="text-slate-500">Empfänger</dt><dd class="text-slate-200">{{ payment.recipient_name }}</dd></div>
+      <div><dt class="text-slate-500">IBAN</dt><dd class="font-mono text-xs text-slate-300">{{ payment.recipient_iban }}</dd></div>
+      <div><dt class="text-slate-500">BIC</dt><dd class="font-mono text-xs text-slate-300">{{ payment.recipient_bic|default:"—" }}</dd></div>
+      <div><dt class="text-slate-500">Konto</dt><dd class="text-slate-200">{{ payment.account.name }}</dd></div>
+      <div><dt class="text-slate-500">Verwendungszweck</dt><dd class="text-slate-200">{{ payment.purpose|default:"—" }}</dd></div>
+      <div><dt class="text-slate-500">Ausführung</dt><dd class="text-slate-200">{{ payment.execution_date|date:"d.m.Y"|default:"sofort" }}</dd></div>
+      {% if payment.error_message %}<div class="sm:col-span-2"><dt class="text-slate-500">Fehler</dt><dd class="text-rose-300">{{ payment.error_message }}</dd></div>{% endif %}
+    </dl>
+
+    <div class="mt-6 flex flex-wrap gap-2">
+      {% if payment.status == 'draft' or payment.status == 'failed' %}
+        <form method="post" action="{% url 'banking:payment_submit' payment.pk %}">{% csrf_token %}<button class="btn-primary text-xs" type="submit">Jetzt einreichen</button></form>
+      {% endif %}
+      {% if payment.status == 'draft' or payment.status == 'pending_tan' or payment.status == 'failed' %}
+        <form method="post" action="{% url 'banking:payment_cancel' payment.pk %}">{% csrf_token %}<button class="btn-secondary text-xs" type="submit">Stornieren</button></form>
+      {% endif %}
+      {% if payment.tan_challenge and payment.tan_challenge.status == 'pending' %}
+        <button class="btn-secondary text-xs" hx-get="{% url 'banking:tan_modal' payment.tan_challenge.pk %}" hx-target="#tan-container" hx-swap="innerHTML">TAN eingeben</button>
+      {% endif %}
+      <a class="btn-secondary text-xs" href="{% url 'banking:payment_list' %}">Zurück</a>
+    </div>
+  </div>
+
+  <div class="card p-5">
+    <h2 class="text-sm font-semibold text-slate-100">PAIN.001.001.03</h2>
+    <p class="mt-1 text-[11px] text-slate-500">SEPA-XML für die Bankeinreichung</p>
+    <pre class="mt-3 max-h-96 overflow-auto rounded-xl bg-gray-950 p-3 font-mono text-[10px] leading-relaxed text-slate-400">{{ payment.pain_xml|default:"Noch nicht erzeugt." }}</pre>
+  </div>
+</div>
+{% endblock %}

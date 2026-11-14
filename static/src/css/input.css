@@ -1,0 +1,153 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Lokale Fonts (Zero-CDN) */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/inter-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../fonts/inter-latin-600-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../fonts/inter-latin-700-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/jetbrains-mono-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../fonts/jetbrains-mono-latin-600-normal.woff2') format('woff2');
+}
+
+/* Alpine.js Cloak & htmx Loading Indicators */
+[x-cloak] {
+  display: none !important;
+}
+
+.htmx-indicator {
+  display: none;
+}
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator {
+  display: inline-block;
+}
+
+@layer base {
+  html {
+    @apply bg-gray-950 text-slate-200 antialiased;
+  }
+  body {
+    @apply min-h-screen bg-gray-950 font-sans;
+  }
+  ::selection {
+    @apply bg-brand-500/40 text-white;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #334155 #0b0f17;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-slate-800/80 bg-gray-900/80 shadow-soft backdrop-blur;
+  }
+  .card-header {
+    @apply flex items-center justify-between gap-3 border-b border-slate-800/80 px-5 py-4;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-brand-400/60 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-brand-500 text-gray-950 hover:bg-brand-400;
+  }
+  .btn-secondary {
+    @apply btn border border-slate-700 bg-slate-800/60 text-slate-200 hover:bg-slate-700/70;
+  }
+  .btn-danger {
+    @apply btn bg-rose-600 text-white hover:bg-rose-500;
+  }
+  .btn-ghost {
+    @apply btn text-slate-300 hover:bg-slate-800/70;
+  }
+  .input {
+    @apply w-full rounded-xl border border-slate-700 bg-gray-950/70 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-brand-400 focus:ring-brand-400/30;
+  }
+  .label {
+    @apply mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-400;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold;
+  }
+  .badge-green {
+    @apply badge bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30;
+  }
+  .badge-yellow {
+    @apply badge bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/30;
+  }
+  .badge-red {
+    @apply badge bg-rose-500/15 text-rose-300 ring-1 ring-rose-500/30;
+  }
+  .badge-slate {
+    @apply badge bg-slate-500/15 text-slate-300 ring-1 ring-slate-500/30;
+  }
+  .table {
+    @apply w-full border-collapse text-left text-sm;
+  }
+  .table thead th {
+    @apply border-b border-slate-800 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-400;
+  }
+  .table tbody td {
+    @apply border-b border-slate-800/60 px-3 py-2.5 align-middle;
+  }
+  .table tbody tr:hover {
+    @apply bg-slate-800/30;
+  }
+  .kbd {
+    @apply rounded-md border border-slate-600 bg-slate-800 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-slate-200;
+  }
+  .nav-link {
+    @apply rounded-xl px-3 py-2 text-sm font-medium text-slate-400 transition hover:bg-slate-800/70 hover:text-slate-100;
+  }
+  .nav-link-active {
+    @apply bg-brand-500/10 text-brand-300 ring-1 ring-brand-500/20;
+  }
+  .stat {
+    @apply card p-4;
+  }
+  .stat-label {
+    @apply text-xs font-semibold uppercase tracking-wide text-slate-400;
+  }
+  .stat-value {
+    @apply mt-1 font-mono text-xl font-semibold text-slate-50;
+  }
+  .triage-row-focused {
+    @apply ring-2 ring-brand-400/70 ring-offset-2 ring-offset-gray-950;
+  }
+  .ql-toolbar.ql-snow {
+    @apply rounded-t-xl border-slate-700 bg-slate-800/70;
+  }
+  .ql-container.ql-snow {
+    @apply min-h-[320px] rounded-b-xl border-slate-700 bg-gray-950/70 text-slate-100;
+  }
+}

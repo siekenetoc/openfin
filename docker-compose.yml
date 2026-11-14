@@ -1,0 +1,153 @@
+services:
+  db:
+    image: postgres:16-bookworm
+    container_name: openfin_db
+    restart: unless-stopped
+    user: "${UID:-1000}:${GID:-1000}"
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-openfin}
+      POSTGRES_USER: ${POSTGRES_USER:-openfin_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - ./docker-data/postgres:/var/lib/postgresql/data
+      - /etc/passwd:/etc/passwd:ro
+      - /etc/group:/etc/group:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-openfin_user} -d ${POSTGRES_DB:-openfin}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - openfin_net
+
+  redis:
+    image: redis:7-bookworm
+    container_name: openfin_redis
+    restart: unless-stopped
+    user: "${UID:-1000}:${GID:-1000}"
+    command: redis-server --appendonly yes --dir /data
+    volumes:
+      - ./docker-data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - openfin_net
+
+  node_builder:
+    image: node:22-bookworm-slim
+    container_name: openfin_node
+    user: "${UID:-1000}:${GID:-1000}"
+    working_dir: /app
+    volumes:
+      - ./package.json:/app/package.json
+      - ./package-lock.json:/app/package-lock.json
+      - ./tailwind.config.js:/app/tailwind.config.js
+      - ./static:/app/static
+      - ./templates:/app/templates:ro
+    command: sh -c "npm ci --no-audit --no-fund && npm run build"
+    networks:
+      - openfin_net
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    container_name: openfin_web
+    restart: unless-stopped
+    user: "${UID:-1000}:${GID:-1000}"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      node_builder:
+        condition: service_completed_successfully
+    ports:
+      - "${BIND_IP:-127.0.0.1}:${WEB_PORT:-8045}:8000"
+    volumes:
+      - ./:/app
+      - ./static:/app/static
+      - ./docker-data/static:/app/staticfiles
+      - ./docker-data/media:/app/media
+      - ./docker-data/logs/django:/app/logs/django
+    command: >
+      sh -c "python manage.py migrate_schemas --shared &&
+             python manage.py migrate_schemas &&
+             python manage.py collectstatic --noinput &&
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 4 --timeout 120"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/healthz/"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      - openfin_net
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    container_name: openfin_celery_worker
+    restart: unless-stopped
+    user: "${UID:-1000}:${GID:-1000}"
+    ipc: host
+    shm_size: "2gb"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./:/app
+      - ./docker-data/media:/app/media
+      - ./docker-data/playwright_profiles:/app/playwright_profiles
+      - ./docker-data/logs/celery:/app/logs/celery
+      - ./docker-data/logs/playwright:/app/logs/playwright
+    command: celery -A config worker -l INFO --concurrency=4
+    networks:
+      - openfin_net
+
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    container_name: openfin_celery_beat
+    restart: unless-stopped
+    user: "${UID:-1000}:${GID:-1000}"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./:/app
+      - ./docker-data/logs/celery:/app/logs/celery
+    command: celery -A config beat -l INFO --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    networks:
+      - openfin_net
+
+networks:
+  openfin_net:
+    driver: bridge

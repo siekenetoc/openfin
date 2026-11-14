@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Forderungseinzug{% endblock %}
+{% block page_title %}Collection-Dashboard{% endblock %}
+{% block page_subtitle %}Offene Rechnungen nach Einzugsweg · SEPA &amp; Payment-Links{% endblock %}
+
+{% block content %}
+<div class="grid gap-4 sm:grid-cols-4">
+  <div class="stat"><div class="stat-label">Offen gesamt</div><div class="stat-value">{{ payments|length }}</div></div>
+  <div class="stat"><div class="stat-label">SEPA-fähig</div><div class="stat-value">{{ grouped.sepa|length }}</div></div>
+  <div class="stat"><div class="stat-label">Payment-Links</div><div class="stat-value">{{ payment_link_count }}</div></div>
+  <div class="stat"><div class="stat-label">Fällig ≤ 14 Tage</div><div class="stat-value">{{ due_soon|length }}</div></div>
+</div>
+
+<div class="mt-6 flex flex-wrap items-center justify-between gap-2">
+  <div class="flex gap-2">
+    <a class="btn-secondary text-xs" href="{% url 'dashboard:export' 'expected' %}">Offene Posten CSV</a>
+    <a class="btn-secondary text-xs" href="{% url 'dashboard:export' 'sepa_batches' %}">SEPA-Batches CSV</a>
+    <a class="btn-secondary text-xs" href="{% url 'billing:mandate_list' %}">Mandate</a>
+    <a class="btn-secondary text-xs" href="{% url 'billing:payment_link_list' %}">Payment-Links</a>
+  </div>
+  <a class="btn-ghost text-xs" href="{% url 'billing:provider_config' %}">Provider-Konfiguration</a>
+</div>
+
+<div class="mt-4 card overflow-hidden" x-data="collectionBoard()">
+  <div class="card-header">
+    <div>
+      <h2 class="text-sm font-semibold text-slate-100">SEPA-Lastschrifteinzug (PAIN.008)</h2>
+      <p class="text-xs text-slate-500">Rechnungen mit aktivem Mandat auswählen und Batch erzeugen.</p>
+    </div>
+    <label class="flex items-center gap-2 text-xs text-slate-400">
+      <input type="checkbox" @change="toggleAll()" :checked="selectAll" class="rounded border-slate-600 bg-gray-950"> Alle
+    </label>
+  </div>
+  <form method="post" action="{% url 'billing:sepa_batch_new' %}">
+    {% csrf_token %}
+    <div class="overflow-x-auto">
+      <table class="table">
+        <thead><tr><th class="w-8"></th><th>Rechnung</th><th>Kunde</th><th>Mandat</th><th class="text-right">Betrag</th><th>Fällig</th></tr></thead>
+        <tbody>
+        {% for payment in grouped.sepa %}
+          <tr>
+            <td><input type="checkbox" name="payment_ids" value="{{ payment.pk }}" data-row-select @change="syncSelected()" class="rounded border-slate-600 bg-gray-950"></td>
+            <td class="font-mono text-xs text-brand-300">{{ payment.invoice_id }}</td>
+            <td class="text-sm text-slate-200">{{ payment.customer_name }}<div class="font-mono text-[10px] text-slate-500">{{ payment.customer_iban }}</div></td>
+            <td class="text-xs text-slate-400">{{ payment.sepa_mandate.mandate_reference }}<div class="text-[10px] text-slate-500">{{ payment.sepa_mandate.mandate_type }} · {{ payment.sepa_mandate.sequence_type }}</div></td>
+            <td class="text-right font-mono text-slate-100">{{ payment.amount|floatformat:2 }} €</td>
+            <td class="font-mono text-xs {% if payment.due_date <= due_soon.0.due_date %}text-amber-300{% else %}text-slate-400{% endif %}">{{ payment.due_date|date:"d.m.Y" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="py-8 text-center text-sm text-slate-500">Keine offenen Rechnungen mit aktivem SEPA-Mandat.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="grid gap-3 border-t border-slate-800 p-4 md:grid-cols-4">
+      <div>
+        <label class="label">Auftragskonto</label>
+        {{ batch_form.account }}
+      </div>
+      <div>
+        <label class="label">Einzugsdatum</label>
+        {{ batch_form.collection_date }}
+      </div>
+      <div class="md:col-span-2">
+        <label class="label">Beschreibung</label>
+        {{ batch_form.description }}
+      </div>
+    </div>
+    <div class="flex justify-end border-t border-slate-800 p-4">
+      <button class="btn-primary text-xs" type="submit">SEPA-Batch erzeugen</button>
+    </div>
+  </form>
+</div>
+
+<div class="mt-6 grid gap-6 lg:grid-cols-2">
+  <div class="card p-5">
+    <h2 class="text-sm font-semibold text-slate-100">Ohne SEPA-Mandat</h2>
+    <div class="mt-3 space-y-2">
+      {% for payment in grouped.other %}
+        <div class="rounded-xl border border-slate-800 p-3">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <div class="font-mono text-xs text-brand-300">{{ payment.invoice_id }}</div>
+              <div class="text-xs text-slate-400">{{ payment.customer_name }} · {{ payment.amount|floatformat:2 }} € · fällig {{ payment.due_date|date:"d.m.Y" }}</div>
+            </div>
+            <div class="flex flex-wrap gap-1">
+              <form method="post" action="{% url 'billing:payment_link_create' %}">{% csrf_token %}<input type="hidden" name="payment_id" value="{{ payment.pk }}"><input type="hidden" name="provider" value="stripe"><button class="btn-ghost px-2 py-1 text-[10px]" type="submit">Stripe</button></form>
+              <form method="post" action="{% url 'billing:payment_link_create' %}">{% csrf_token %}<input type="hidden" name="payment_id" value="{{ payment.pk }}"><input type="hidden" name="provider" value="paypal"><button class="btn-ghost px-2 py-1 text-[10px]" type="submit">PayPal</button></form>
+              <form method="post" action="{% url 'billing:payment_link_create' %}">{% csrf_token %}<input type="hidden" name="payment_id" value="{{ payment.pk }}"><input type="hidden" name="provider" value="wero"><button class="btn-ghost px-2 py-1 text-[10px]" type="submit">Wero</button></form>
+            </div>
+          </div>
+        </div>
+      {% empty %}
+        <div class="text-xs text-slate-500">Alle offenen Rechnungen sind einem Einzugsweg zugeordnet.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card p-5">
+    <h2 class="text-sm font-semibold text-slate-100">Letzte SEPA-Batches</h2>
+    <div class="mt-3 space-y-2">
+      {% for batch in batches %}
+        <a class="flex items-center justify-between rounded-xl border border-slate-800 px-3 py-2 hover:bg-slate-800/40" href="{% url 'billing:sepa_batch_detail' batch.pk %}">
+          <div>
+            <div class="font-mono text-xs text-slate-200">{{ batch.batch_id }}</div>
+            <div class="text-[10px] text-slate-500">{{ batch.collection_date|date:"d.m.Y" }} · {{ batch.get_status_display }}</div>
+          </div>
+          <span class="font-mono text-xs text-slate-100">{{ batch.total_amount|floatformat:2 }} €</span>
+        </a>
+      {% empty %}<div class="text-xs text-slate-500">Noch keine Batches.</div>{% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

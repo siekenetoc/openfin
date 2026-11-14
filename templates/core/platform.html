@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Plattform{% endblock %}
+{% block page_title %}Mandanten-Plattform{% endblock %}
+{% block page_subtitle %}Public-Schema · Stammdaten, Domains &amp; Isolation{% endblock %}
+
+{% block content %}
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="lg:col-span-2">
+    <div class="card overflow-hidden">
+      <div class="card-header">
+        <div>
+          <h2 class="text-sm font-semibold text-slate-100">Mandanten</h2>
+          <p class="text-xs text-slate-500">Jeder Mandant besitzt ein isoliertes PostgreSQL-Schema.</p>
+        </div>
+        <span class="badge-slate">{{ tenants|length }} aktiv</span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="table">
+          <thead>
+            <tr><th>Name</th><th>Schema</th><th>Domains</th><th>Status</th><th class="text-right">Aktion</th></tr>
+          </thead>
+          <tbody>
+          {% for tenant in tenants %}
+            <tr>
+              <td class="font-semibold text-slate-100">{{ tenant.name }}</td>
+              <td class="font-mono text-xs text-slate-400">{{ tenant.schema_name }}</td>
+              <td class="text-xs text-slate-400">
+                {% for domain in tenant.domains.all %}
+                  <div class="font-mono">{{ domain.domain }}{% if domain.is_primary %} <span class="badge-green">primär</span>{% endif %}</div>
+                {% empty %}—{% endfor %}
+              </td>
+              <td>{% if tenant.is_active %}<span class="badge-green">aktiv</span>{% else %}<span class="badge-red">inaktiv</span>{% endif %}</td>
+              <td class="text-right">
+                {% if tenant.primary_domain %}
+                  <a class="btn-secondary text-xs" href="http://{{ tenant.primary_domain.domain }}/" target="_blank" rel="noopener">Öffnen</a>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="py-8 text-center text-sm text-slate-500">Noch keine Mandanten angelegt.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card p-5">
+      <h2 class="text-sm font-semibold text-slate-100">Neuen Mandanten anlegen</h2>
+      <p class="mt-1 text-xs text-slate-500">Schema, primäre Domain und Mandanten-Admin werden transaktional erzeugt.</p>
+      <form method="post" class="mt-4 space-y-3">
+        {% csrf_token %}
+        {% for field in form %}
+        <div>
+          <label class="label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<p class="mt-1 text-[10px] text-slate-500">{{ field.help_text }}</p>{% endif %}
+          {% for error in field.errors %}<p class="mt-1 text-xs text-rose-300">{{ error }}</p>{% endfor %}
+        </div>
+        {% endfor %}
+        {% if form.non_field_errors %}<div class="text-xs text-rose-300">{{ form.non_field_errors }}</div>{% endif %}
+        <button class="btn-primary w-full" type="submit">Mandant anlegen</button>
+      </form>
+    </div>
+    <div class="card mt-4 p-5 text-xs text-slate-400">
+      <div class="font-semibold text-slate-200">Sicherheitshinweis</div>
+      <p class="mt-2">Der öffentliche Bereich zeigt ausschließlich Mandanten-Stammdaten. Alle fachlichen Daten liegen in getrennten Schemata und sind ohne Tenant-Kontext nicht erreichbar.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

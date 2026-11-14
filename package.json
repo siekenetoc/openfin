@@ -1,0 +1,30 @@
+{
+  "name": "openfin-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Zero-CDN Asset Pipeline for OpenFin (Tailwind, Alpine.js, htmx, Quill RTF, Local Fonts)",
+  "scripts": {
+    "copy:fonts": "mkdir -p ./static/dist/fonts && cp ./node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2 ./node_modules/@fontsource/inter/files/inter-latin-600-normal.woff2 ./node_modules/@fontsource/inter/files/inter-latin-700-normal.woff2 ./node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2 ./node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-600-normal.woff2 ./static/dist/fonts/",
+    "copy:quill-css": "mkdir -p ./static/dist/css && cp ./node_modules/quill/dist/quill.snow.css ./static/dist/css/quill.snow.css",
+    "build:css": "npx tailwindcss -i ./static/src/css/input.css -o ./static/dist/css/app.min.css --minify",
+    "build:js": "npx esbuild ./static/src/js/app.js --bundle --minify --sourcemap --target=es2020 --outfile=./static/dist/js/app.min.js",
+    "build": "npm run copy:fonts && npm run copy:quill-css && npm run build:css && npm run build:js",
+    "watch:css": "npx tailwindcss -i ./static/src/css/input.css -o ./static/dist/css/app.min.css --watch",
+    "watch:js": "npx esbuild ./static/src/js/app.js --bundle --sourcemap --target=es2020 --outfile=./static/dist/js/app.min.js --watch"
+  },
+  "dependencies": {
+    "@alpinejs/focus": "^3.14.3",
+    "@alpinejs/persist": "^3.14.3",
+    "@fontsource/inter": "^5.1.0",
+    "@fontsource/jetbrains-mono": "^5.1.0",
+    "alpinejs": "^3.14.3",
+    "htmx.org": "^2.0.3",
+    "quill": "^2.0.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/forms": "^0.5.9",
+    "@tailwindcss/typography": "^0.5.15",
+    "esbuild": "^0.24.0",
+    "tailwindcss": "^3.4.14"
+  }
+}

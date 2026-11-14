@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Provider{% endblock %}
+{% block page_title %}Externe Provider &amp; Depots{% endblock %}
+{% block page_subtitle %}PayPal REST, Playwright-Scraper, Depotkurse und Cashflow{% endblock %}
+
+{% block content %}
+<div class="grid gap-4 sm:grid-cols-3">
+  <div class="stat"><div class="stat-label">90-Tage-Prognose</div><div class="stat-value">{{ forecast.projected_balance|floatformat:2 }} €</div></div>
+  <div class="stat"><div class="stat-label">PayPal-Konten</div><div class="stat-value">{{ paypal_accounts|length }}</div></div>
+  <div class="stat"><div class="stat-label">Depots</div><div class="stat-value">{{ depots|length }}</div></div>
+</div>
+
+<div class="mt-6 grid gap-6 xl:grid-cols-2">
+  <div class="card p-5">
+    <h2 class="text-sm font-semibold text-slate-100">PayPal</h2>
+    <p class="mt-1 text-xs text-slate-500">Transaktionen und Salden über die offizielle REST API.</p>
+    <div class="mt-3 space-y-2">
+      {% for account in paypal_accounts %}
+        <div class="flex items-center justify-between rounded-xl border border-slate-800 px-3 py-2">
+          <div>
+            <div class="text-sm text-slate-200">{{ account.name }}</div>
+            <div class="font-mono text-[10px] text-slate-500">{{ account.balance|floatformat:2 }} {{ account.currency }} · {{ account.last_sync_at|date:"d.m.Y H:i"|default:"nie" }}</div>
+          </div>
+          <form method="post" action="{% url 'providers:paypal_sync' account.pk %}">{% csrf_token %}<button class="btn-secondary text-xs" type="submit">Sync</button></form>
+        </div>
+      {% empty %}
+        <div class="text-xs text-slate-500">Kein PayPal-Konto angelegt. <a class="text-brand-300" href="{% url 'banking:account_create' %}">Konto anlegen</a> und Provider „PayPal“ wählen.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card p-5">
+    <h2 class="text-sm font-semibold text-slate-100">Amazon &amp; Kreditkarten-Scraper</h2>
+    <p class="mt-1 text-xs text-slate-500">Playwright/Chromium im Celery-Worker; Rechnungs-PDFs landen im Media-Bind-Mount.</p>
+    <div class="mt-3 space-y-2">
+      {% for account in paypal_accounts %}{% endfor %}
+      {% for run in scrape_runs %}
+        <div class="flex items-center justify-between rounded-xl border border-slate-800 px-3 py-2 text-xs">
+          <div>
+            <div class="text-slate-200">{{ run.account.name }} · {{ run.scraper }}</div>
+            <div class="text-[10px] text-slate-500">{{ run.get_status_display }} · {{ run.items_found }} Artikel · {{ run.documents_saved }} PDFs</div>
+          </div>
+          <span class="badge-slate">{{ run.created_at|date:"d.m.Y H:i" }}</span>
+        </div>
+      {% empty %}
+        <div class="text-xs text-slate-500">Noch keine Scrape-Läufe.</div>
+      {% endfor %}
+    </div>
+    <div class="mt-3 rounded-xl border border-slate-800 p-3 text-[11px] text-slate-400">
+      Start über die Konto-Detailseite eines Amazon-/Kreditkartenkontos. Scraper nutzen persistente Profile unter <span class="font-mono">docker-data/playwright_profiles/</span>.
+    </div>
+  </div>
+</div>
+
+<div class="mt-6 space-y-4">
+  {% for depot in depots %}
+  <div class="card overflow-hidden">
+    <div class="card-header">
+      <div>
+        <h2 class="text-sm font-semibold text-slate-100">{{ depot.account.name }}</h2>
+        <p class="text-xs text-slate-500">{{ depot.position_count }} Positionen · {{ depot.total_value|floatformat:2 }} €</p>
+      </div>
+      <div class="flex gap-2">
+        <form method="post" action="{% url 'providers:depot_refresh' depot.account.pk %}">{% csrf_token %}<button class="btn-secondary text-xs" type="submit">Kurse aktualisieren</button></form>
+        <a class="btn-secondary text-xs" href="{% url 'providers:depot_detail' depot.account.pk %}">Details</a>
+      </div>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="table">
+        <thead><tr><th>Name</th><th>ISIN</th><th class="text-right">Stück</th><th class="text-right">Kurs</th><th class="text-right">Wert</th><th>Aktualisiert</th></tr></thead>
+        <tbody>
+        {% for position in depot.positions %}
+          <tr>
+            <td class="text-sm text-slate-200">{{ position.name }}</td>
+            <td class="font-mono text-xs text-slate-400">{{ position.isin }}</td>
+            <td class="text-right font-mono text-xs text-slate-300">{{ position.quantity }}</td>
+            <td class="text-right font-mono text-xs text-slate-300">{{ position.price|floatformat:4 }} {{ position.currency }}</td>
+            <td class="text-right font-mono text-slate-100">{{ position.market_value|floatformat:2 }} €</td>
+            <td class="font-mono text-[10px] text-slate-500">{{ position.updated_at|date:"d.m.Y H:i" }}</td>
+          </tr>
+        {% empty %}<tr><td colspan="6" class="py-6 text-center text-xs text-slate-500">Keine Positionen.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% empty %}
+  <div class="card p-8 text-center text-sm text-slate-500">Noch kein Depotkonto. <a class="text-brand-300" href="{% url 'banking:account_create' %}">Depot anlegen</a>.</div>
+  {% endfor %}
+</div>
+{% endblock %}

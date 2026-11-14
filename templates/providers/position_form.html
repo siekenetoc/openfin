@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Position anlegen{% endblock %}
+{% block page_title %}Depotposition anlegen{% endblock %}
+{% block page_subtitle %}{{ account.name }}{% endblock %}
+
+{% block content %}
+<div class="card max-w-2xl p-6">
+  <form method="post" class="space-y-4">
+    {% csrf_token %}
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div><label class="label">Name</label><input class="input" name="name" required></div>
+      <div><label class="label">ISIN</label><input class="input font-mono" name="isin" required maxlength="12"></div>
+      <div><label class="label">Stück</label><input class="input font-mono" name="quantity" type="number" step="0.000001" value="0"></div>
+      <div><label class="label">Kurs</label><input class="input font-mono" name="price" type="number" step="0.0001" value="0"></div>
+      <div class="sm:col-span-2"><label class="label">Yahoo-Finance-Symbol (optional)</label><input class="input font-mono" name="yahoo_symbol" placeholder="z. B. SAP.DE"></div>
+    </div>
+    <div class="flex gap-2">
+      <button class="btn-primary" type="submit">Anlegen</button>
+      <a class="btn-secondary" href="{% url 'providers:depot_detail' account.pk %}">Abbrechen</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

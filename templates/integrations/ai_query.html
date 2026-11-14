@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}KI-Finanzabfrage{% endblock %}
+{% block page_title %}Text-to-SQL Finanzabfrage{% endblock %}
+{% block page_subtitle %}Nur lesende SELECT-Abfragen · Whitelist &amp; LIMIT{% endblock %}
+
+{% block content %}
+<div class="card max-w-4xl p-6">
+  <form method="post" class="space-y-3">
+    {% csrf_token %}
+    <div>
+      <label class="label">{{ form.question.label }}</label>
+      {{ form.question }}
+    </div>
+    <button class="btn-primary" type="submit">Abfrage starten</button>
+  </form>
+  {% if error %}<div class="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200">{{ error }}</div>{% endif %}
+</div>
+
+{% if result %}
+<div class="mt-6 card overflow-hidden">
+  <div class="card-header">
+    <div>
+      <h2 class="text-sm font-semibold text-slate-100">Ergebnis</h2>
+      <p class="text-xs text-slate-500">{{ result.rows|length }} Zeilen</p>
+    </div>
+  </div>
+  <pre class="overflow-x-auto border-b border-slate-800 bg-gray-950 p-3 font-mono text-[10px] text-slate-400">{{ result.sql }}</pre>
+  <div class="overflow-x-auto">
+    <table class="table">
+      <thead><tr>{% for column in result.columns %}<th>{{ column }}</th>{% endfor %}</tr></thead>
+      <tbody>
+      {% for row in result.rows %}
+        <tr>{% for value in row %}<td class="font-mono text-xs text-slate-300">{{ value }}</td>{% endfor %}</tr>
+      {% empty %}<tr><td colspan="{{ result.columns|length }}" class="py-6 text-center text-xs text-slate-500">Keine Treffer.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
